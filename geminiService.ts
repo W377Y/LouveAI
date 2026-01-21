@@ -8,7 +8,7 @@ const songSchema = {
   type: Type.OBJECT,
   properties: {
     title: { type: Type.STRING },
-    artist: { type: Type.STRING, description: "Nome do artista ou autor da música" },
+    artist: { type: Type.STRING },
     category: { type: Type.STRING },
     key: { type: Type.STRING },
     ministration: {
@@ -37,26 +37,26 @@ export const generateRepertory = async (
     .map(([cat, count]) => `${count} música(s) de ${cat}`)
     .join(", ");
 
-  const totalSongs = Object.values(config.categoryCounts).reduce((a, b) => (Number(a) || 0) + (Number(b) || 0), 0);
-
-  const recentSongsBlock = config.recentSongs && config.recentSongs.length > 0
-    ? `AVISO DE FREQUÊNCIA: As seguintes músicas foram tocadas nos últimos 30 dias e NÃO devem ser repetidas hoje: ${config.recentSongs.join(", ")}.`
-    : "";
-
   const systemInstruction = `
-    Você é um experiente Ministro de Louvor e Teólogo. 
-    Sua tarefa é gerar um repertório de louvor cristão edificante com exatamente ${totalSongs} músicas.
-    O repertório DEVE conter: ${categoriesDescription}.
-    ${recentSongsBlock}
-    Para cada música, forneça nome e artista.
-    Para cada música, forneça uma ministração profética, curta e bíblica que o ministro deve falar antes de começar a cantar.
-    Idiomas: Português Brasileiro.
-    Contexto adicional: ${config.globalPrompt}
+    Você é um Ministro de Louvor sênior organizando um culto com a seguinte sequência litúrgica FIXA:
+    
+    1. ABERTURA (Harpa Cristã): Hinos tradicionais para iniciar o culto.
+    2. LOUVOR PRINCIPAL (Jornada do Tabernáculo):
+       - O CAMINHO (Átrio): Celebração e Gratidão.
+       - A VERDADE (Lugar Santo): Santidade e Palavra.
+       - A VIDA (Santo dos Santos): Intimidade e Glória.
+    3. DÍZIMOS E OFERTAS: Músicas de gratidão, fidelidade e entrega.
+
+    Sua tarefa é gerar as músicas na ordem correta da liturgia acima.
+    Para cada música, crie uma ministração profética curta.
+    Evite repetir músicas tocadas nos últimos 30 dias: ${config.recentSongs?.join(", ") || "Nenhuma"}.
+    Contexto: ${config.globalPrompt}.
+    Idioma: Português Brasileiro.
   `;
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Gere o repertório: ${categoriesDescription}.`,
+    contents: `Gere o repertório completo seguindo a sequência Harpa -> Louvor (Tabernáculo) -> Dízimos para as quantidades: ${categoriesDescription}.`,
     config: {
       systemInstruction,
       responseMimeType: "application/json",
@@ -75,15 +75,14 @@ export const regenerateSong = async (
   recentSongs: string[] = []
 ): Promise<SongItem> => {
   const systemInstruction = `
-    Você está ajustando uma música específica. 
-    Música anterior: "${currentSong.title}" - ${currentSong.artist}.
-    ${recentSongs.length > 0 ? `NÃO use: ${recentSongs.join(", ")}.` : ""}
+    Substitua esta música respeitando seu lugar na liturgia (Categoria: ${currentSong.category}).
     Instrução: ${individualPrompt}
+    Não use: ${recentSongs.join(", ")}.
   `;
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Troque a música atendendo ao pedido: ${individualPrompt}`,
+    contents: `Substitua "${currentSong.title}" por outra música adequada para o momento de ${currentSong.category}.`,
     config: {
       systemInstruction,
       responseMimeType: "application/json",
